@@ -35,7 +35,7 @@ HartwellApache_CL
 | sort by Requests desc
 ```
 192.168.1.120 had more requests, but it's the web server itself (local traffic and the lab's noise generator), so .100 is the outsider.
-![Requests by SourceIP](images/image1.png)
+![Requests by SourceIP](images/image22.png)
 
 **ATT&CK:** T1595 – Active Scanning
 
@@ -49,7 +49,7 @@ HartwellApache_CL
 ```
 **Found:** Many browser user agents from one IP (Android, iPhone, iPad, Mac, Windows, Linux), plus tool signatures: curl, python-requests, zgrab, a fake Googlebot, and the Nmap Scripting Engine (93 requests).
 **Means:** One person doesn't use a dozen devices — the attacker was rotating fake user agents to blend in. The Nmap signature shows automated scanning.
-![Requests by user agent](images/image2.png)
+![Requests by user agent](images/image16.png)
 
 **ATT&CK:** T1595 – Active Scanning
 
@@ -65,56 +65,56 @@ HartwellApache_CL
 ### 2.2 — Exploit Delivery
 **Answer:** `POST, multipart/form-data`
 
-![Enriched HTTP query](images/image3.png)
+![Enriched HTTP query](images/image4.png)
 
-![GET vs OPTIONS vs POST](images/image4.png)
+![GET vs OPTIONS vs POST](images/image10.png)
 The attacker sent 430 normal GET page visits to blend in, then slipped in 8 POST file uploads carrying fake session cookies. Those uploads were the exploit.
 **ATT&CK:** T1190 – Exploit Public-Facing Application
 
 ### 2.3 — Web Shell
 **Answer:** `health-check.php`
 
-![First-seen pages query](images/image5.png)
+![First-seen pages query](images/image11.png)
 
-![health-check.php first seen](images/image6.png)
+![health-check.php first seen](images/image18.png)
 First requested at 14:01, ~6 minutes after the exploit, and requested 46 times. The name was chosen to look like routine monitoring.
 **ATT&CK:** T1505.003 – Server Software Component: Web Shell
 
 ### 3.1 — Compromised Account
 **Answer:** `www-data`
 
-![ProcessCreate by user query](images/image7.png)
+![ProcessCreate by user query](images/image17.png)
 
-![www-data spawning dash](images/image8.png)
+![www-data spawning dash](images/image3.png)
 Sysmon ProcessCreate events grouped by User and ParentImage: root runs system housekeeping, but www-data (the Apache service account) was spawning programs from the web server — which it should never do.
 **ATT&CK:** T1059.004 – Command and Scripting Interpreter: Unix Shell
 
 ### 3.2 — Command Channel
 **Answer:** `X-HMG-Debug` header
 
-![Request headers query](images/image9.png)
+![Request headers query](images/image24.png)
 
-![X-HMG-Debug header values](images/image10.png)
+![X-HMG-Debug header values](images/image26.png)
 Commands were hidden in a custom header instead of the URL, because the Apache log records URLs but not headers. Only the packet capture revealed them.
 **ATT&CK:** T1027 – Obfuscated Files or Information
 
 ### 3.3 — Encoding
 **Answer:** ROT13, then base64
 
-![Decode query](images/image11.png)
+![Decode query](images/image1.png)
 
-![Decoded commands](images/image12.png)
+![Decoded commands](images/image5.png)
 Spotted base64 from the `==` padding, decoded it, then saw letters shifted by 13.
 **ATT&CK:** T1027 – Obfuscated Files or Information
 
 ### 4.1 — Network Discovery
 **Answer:** `ip addr`, `ip neigh`, `ss`
 
-![www-data command query](images/image13.png)
+![www-data command query](images/image25.png)
 
-![ss -tlnp](images/image14.png)
+![ss -tlnp](images/image20.png)
 
-![Discovery commands](images/image15.png)
+![Discovery commands](images/image2.png)
 - `ip addr show` — this machine's address
 - `ip neigh` — other machines it has talked to
 - `ss -tlnp` — services listening on this machine
@@ -124,25 +124,25 @@ Spotted base64 from the `==` padding, decoded it, then saw letters shifted by 13
 ### 4.2 — Security Software Discovery
 **Answer:** sysmon, auditd, SplunkForwarder
 
-![Command query](images/image16.png)
+![Command query](images/image25.png)
 
-![systemctl is-active check](images/image17.png)
+![systemctl is-active check](images/image19.png)
 Checked whether three security tools were running, right after trying to stop them.
 **ATT&CK:** T1518.001 – Software Discovery: Security Software Discovery
 
 ### 5.1 — Credential Access
 **Answer:** `/var/www/html/wp-config.php`
 
-![wp-config.php reads](images/image18.png)
+![wp-config.php reads](images/image6.png)
 Read several times (`head`, `grep DB_`, `grep AUTH`, then `base64` to copy the whole file) to get the WordPress database credentials.
 **ATT&CK:** T1552.001 – Unsecured Credentials: Credentials In Files
 
 ### 6.1 — Defense Evasion
 **Answer:** sysmon, auditd, SplunkForwarder
 
-![Stop-service query](images/image19.png)
+![Stop-service query](images/image15.png)
 
-![systemctl stop / auditctl -D](images/image20.png)
+![systemctl stop / auditctl -D](images/image14.png)
 Ran `systemctl stop sysmon` (14:14:01) and `systemctl stop SplunkForwarder` (14:14:07), wiped auditd's rules with `auditctl -D` (14:13:55), then ran `systemctl is-active` to confirm. The syslog stops at 15:07–15:10 were apache2 and rsyslog from systemd an hour later, so not the attacker. The stops failed: www-data isn't root, so the services kept running.
 **ATT&CK:** T1562.001 – Impair Defenses: Disable or Modify Tools
 
@@ -152,9 +152,9 @@ Ran `systemctl stop sysmon` (14:14:01) and `systemctl stop SplunkForwarder` (14:
 ### 7.1 — Persistence
 **Answer:** crontab
 
-![Cron query](images/image21.png)
+![Cron query](images/image8.png)
 
-![crontab install](images/image22.png)
+![crontab install](images/image7.png)
 ```
 */5 * * * * /dev/shm/.cache-helper 300
 ```
@@ -164,9 +164,9 @@ Every 5 minutes, forever — an alarm clock that re-runs the implant, so a reboo
 ### 7.2 — Hidden Implant
 **Answer:** `/dev/shm/.cache-helper`
 
-![.cache-helper query](images/image23.png)
+![.cache-helper query](images/image13.png)
 
-![cp /usr/bin/sleep to /dev/shm](images/image24.png)
+![cp /usr/bin/sleep to /dev/shm](images/image27.png)
 At 14:15:49 UTC, www-data ran `cp /usr/bin/sleep /dev/shm/.cache-helper && chmod +x /dev/shm/.cache-helper && ls -la /dev/shm/.cache-helper` — copy a harmless binary into place as a stand-in implant, make it executable, verify it's there. (`&amp;&amp;` in the log is just `&&` HTML-encoded.)
 
 **Why the location matters:**
@@ -180,9 +180,9 @@ At 14:15:49 UTC, www-data ran `cp /usr/bin/sleep /dev/shm/.cache-helper && chmod
 ### 8.1 — Exfiltration
 **Answer:** Encoded with base64 and sent back through the web shell's HTTP responses.
 
-![Exfil query](images/image25.png)
+![Exfil query](images/image12.png)
 
-![base64 wp-config.php](images/image26.png)
+![base64 wp-config.php](images/image21.png)
 - `base64 /var/www/html/wp-config.php` and `SELECT * FROM wp_users | base64` — both dumps were base64-encoded and returned in the shell's responses.
 - NetworkConnect rows show only apache2 — no curl, wget, or nc, and no new IPs. The data left through the shell itself.
 
@@ -201,9 +201,9 @@ HartwellSysmon_CL
 - 5 were debian: an analyst grepping logs and running tcpdump.
 - Only .120 (the web server) and .100 (the attacker) appear — no other 192.168.1.x host.
 
-![Lateral movement query](images/image27.png)
+![Lateral movement query](images/image9.png)
 
-![Count by user: root and debian only](images/image28.png)
+![Count by user: root and debian only](images/image23.png)
 
 **ATT&CK:** TA0008 Lateral Movement — checked, not observed.
 
