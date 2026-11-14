@@ -2,7 +2,7 @@
 **Threat Hunt Write-Up · Shayquan "Ozzy" Osborne · Nov 2026**
 
 Tools: Microsoft Defender Advanced Hunting (KQL) · Apache access/error logs · enriched HTTP (packet capture) · Sysmon for Linux · Syslog
-📄 **[Full report with every screenshot (PDF)](PHP2Shell__The_Hartwell_Breach.pdf)**
+📄 **[Full report with every screenshot (PDF)](PHP2Shell_%20The%20Hartwell%20Breach%20%285%29.pdf)**
 
 ---
 
